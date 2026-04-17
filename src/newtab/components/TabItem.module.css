@@ -1,0 +1,104 @@
+﻿.row {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid rgba(16, 38, 72, 0.1);
+  background: transparent;
+  color: inherit;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.row:hover {
+  background: rgba(77, 137, 223, 0.12);
+}
+
+:global(body.dark) .row {
+  border-bottom-color: rgba(128, 165, 221, 0.16);
+}
+
+:global(body.dark) .row:hover {
+  background: rgba(73, 119, 191, 0.24);
+}
+
+.favicon,
+.fallbackIcon {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+}
+
+.fallbackIcon {
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  background: #cde1ff;
+  color: #1c4d95;
+}
+
+:global(body.dark) .fallbackIcon {
+  background: #214274;
+  color: #d7e8ff;
+}
+
+.textWrap {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 14px;
+}
+
+.meta {
+  font-size: 12px;
+  color: #4a6790;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:global(body.dark) .meta {
+  color: #a3c1e9;
+}
+
+.badges {
+  display: flex;
+  gap: 6px;
+}
+
+.pin,
+.active {
+  font-size: 10px;
+  border-radius: 999px;
+  padding: 3px 7px;
+}
+
+.pin {
+  background: #fff0ce;
+  color: #915c00;
+}
+
+.active {
+  background: #d8f9e4;
+  color: #21653b;
+}
+
+:global(body.dark) .pin {
+  background: #5a430f;
+  color: #ffd57e;
+}
+
+:global(body.dark) .active {
+  background: #1f5033;
+  color: #bbf2cc;
+}

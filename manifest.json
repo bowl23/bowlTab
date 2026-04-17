@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Bowl Tab Manager",
+  "description": "自定义新建标签页管理器：按域名分组、快速跳转与批量关闭标签页。",
+  "version": "1.0.0",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": ["tabs", "sessions"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "chrome_url_overrides": {
+    "newtab": "newtab.html"
+  }
+}

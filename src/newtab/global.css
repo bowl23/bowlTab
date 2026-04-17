@@ -1,0 +1,27 @@
+﻿:root {
+  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  color-scheme: light dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100%;
+}
+
+body {
+  background: radial-gradient(circle at top right, #f8fbff 0%, #edf3ff 45%, #f6f8ff 100%);
+  color: #102239;
+}
+
+body.dark {
+  background: radial-gradient(circle at top right, #1b2637 0%, #101827 55%, #0b1220 100%);
+  color: #ebf2ff;
+}

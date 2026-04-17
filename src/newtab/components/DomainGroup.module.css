@@ -1,0 +1,91 @@
+﻿.card {
+  border-radius: 16px;
+  border: 1px solid rgba(23, 58, 104, 0.14);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 10px 20px rgba(24, 58, 104, 0.1);
+  overflow: hidden;
+}
+
+:global(body.dark) .card {
+  border-color: rgba(137, 179, 237, 0.2);
+  background: rgba(12, 22, 37, 0.84);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.24);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(22, 48, 83, 0.12);
+}
+
+:global(body.dark) .header {
+  border-bottom-color: rgba(132, 170, 226, 0.2);
+}
+
+.titleWrap {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.titleWrap h2 {
+  margin: 0;
+  font-size: 18px;
+  color: #16345b;
+}
+
+:global(body.dark) .titleWrap h2 {
+  color: #d8e8ff;
+}
+
+.domain {
+  font-size: 13px;
+  color: #45658f;
+}
+
+.count {
+  color: #2f4e78;
+}
+
+.pinned {
+  font-size: 12px;
+  color: #225f36;
+  background: #dff8e8;
+  border-radius: 999px;
+  padding: 3px 8px;
+}
+
+:global(body.dark) .domain,
+:global(body.dark) .count {
+  color: #a7c4ec;
+}
+
+:global(body.dark) .pinned {
+  color: #baf7cf;
+  background: #1e4630;
+}
+
+.header button {
+  border: 1px solid #dd6179;
+  background: linear-gradient(135deg, #fff4f6 0%, #ffdce3 100%);
+  color: #9c1f3b;
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+:global(body.dark) .header button {
+  border-color: #b24f63;
+  background: linear-gradient(135deg, #3c1520 0%, #47202a 100%);
+  color: #ffd3dc;
+}
+
+.list {
+  display: grid;
+}
