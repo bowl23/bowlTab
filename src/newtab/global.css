@@ -1,6 +1,18 @@
-﻿:root {
-  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-  color-scheme: light dark;
+:root {
+  font-family: "Trebuchet MS", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  color-scheme: light;
+  --font-zh-sketch: "ZCOOL QingKe HuangYou", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-ui-base: "Trebuchet MS", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --bg: #ffffff;
+  --line: #000000;
+  --line-strong: #000000;
+  --ink: #000000;
+  --text-primary: #000000;
+  --text-secondary: #000000;
+  --surface: #ffffff;
+  --surface-muted: #ffffff;
+  --accent: #000000;
+  --accent-soft: rgba(0, 0, 0, 0.14);
 }
 
 * {
@@ -17,11 +29,18 @@ body,
 }
 
 body {
-  background: radial-gradient(circle at top right, #f8fbff 0%, #edf3ff 45%, #f6f8ff 100%);
-  color: #102239;
+  font-family: var(--font-ui-base);
+  color: var(--text-primary);
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(to right, rgba(0, 0, 0, 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.07) 1px, transparent 1px);
+  background-size: 22px 22px;
 }
 
-body.dark {
-  background: radial-gradient(circle at top right, #1b2637 0%, #101827 55%, #0b1220 100%);
-  color: #ebf2ff;
+.sketch-button-text,
+.sketch-input-field,
+.sketch-badge-content,
+.sketch-card__content {
+  font-family: var(--font-zh-sketch) !important;
 }

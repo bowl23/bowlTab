@@ -1,89 +1,93 @@
-﻿.card {
-  border-radius: 16px;
-  border: 1px solid rgba(23, 58, 104, 0.14);
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 10px 20px rgba(24, 58, 104, 0.1);
+.card {
+  position: relative;
+  border: 2px solid var(--line-strong);
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.32);
   overflow: hidden;
 }
 
-:global(body.dark) .card {
-  border-color: rgba(137, 179, 237, 0.2);
-  background: rgba(12, 22, 37, 0.84);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.24);
+.card::before {
+  content: "";
+  position: absolute;
+  left: 14px;
+  top: -7px;
+  width: 90px;
+  height: 12px;
+  border-radius: 4px;
+  border: 1px solid #000000;
+  background: #ffffff;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  border-bottom: 1px solid rgba(22, 48, 83, 0.12);
-}
-
-:global(body.dark) .header {
-  border-bottom-color: rgba(132, 170, 226, 0.2);
+  gap: 10px;
+  padding: 12px 12px 10px;
+  border-bottom: 2px dashed var(--line-strong);
 }
 
 .titleWrap {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
   min-width: 0;
 }
 
 .titleWrap h2 {
   margin: 0;
+  font-family: var(--font-zh-sketch);
   font-size: 18px;
-  color: #16345b;
-}
-
-:global(body.dark) .titleWrap h2 {
-  color: #d8e8ff;
+  color: var(--text-primary);
 }
 
 .domain {
-  font-size: 13px;
-  color: #45658f;
+  font-size: 12px;
+  font-family: var(--font-zh-sketch);
+  color: var(--text-secondary);
 }
 
-.count {
-  color: #2f4e78;
+.countBadge {
+  min-width: 30px;
+  justify-content: center;
 }
 
 .pinned {
-  font-size: 12px;
-  color: #225f36;
-  background: #dff8e8;
+  font-size: 11px;
+  color: #000000;
+  border: 2px solid #000000;
+  background: #ffffff;
   border-radius: 999px;
-  padding: 3px 8px;
-}
-
-:global(body.dark) .domain,
-:global(body.dark) .count {
-  color: #a7c4ec;
-}
-
-:global(body.dark) .pinned {
-  color: #baf7cf;
-  background: #1e4630;
+  padding: 2px 8px;
 }
 
 .header button {
-  border: 1px solid #dd6179;
-  background: linear-gradient(135deg, #fff4f6 0%, #ffdce3 100%);
-  color: #9c1f3b;
-  border-radius: 10px;
-  padding: 6px 12px;
-  font-size: 13px;
+  border: 2px solid #000000;
+  background: #ffffff;
+  color: #000000;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 10px;
   cursor: pointer;
-  white-space: nowrap;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.24);
+  transition: background-color 120ms ease, color 120ms ease, transform 120ms ease;
 }
 
-:global(body.dark) .header button {
-  border-color: #b24f63;
-  background: linear-gradient(135deg, #3c1520 0%, #47202a 100%);
-  color: #ffd3dc;
+.header button:hover {
+  background: #000000;
+  color: #ffffff;
+}
+
+.header button:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.24);
+}
+
+.headerDivider {
+  margin: 0 10px;
 }
 
 .list {

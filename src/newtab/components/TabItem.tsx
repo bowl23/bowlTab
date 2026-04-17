@@ -1,5 +1,15 @@
-﻿import styles from './TabItem.module.css';
+import { Badge } from 'sketchbook-ui';
+import styles from './TabItem.module.css';
 import type { ManagedTab } from '../types';
+
+const SKETCH_ZH_FONT = '"ZCOOL QingKe HuangYou", "PingFang SC", "Microsoft YaHei", sans-serif';
+
+const MONO_COLORS = {
+  bg: '#ffffff',
+  bgOverlay: '#ffffff',
+  stroke: '#000000',
+  text: '#000000'
+} as const;
 
 interface TabItemProps {
   tab: ManagedTab;
@@ -38,8 +48,26 @@ export default function TabItem({ tab, onActivate }: TabItemProps) {
       </span>
 
       <span className={styles.badges}>
-        {tab.pinned ? <span className={styles.pin}>PIN</span> : null}
-        {tab.isActive ? <span className={styles.active}>ACTIVE</span> : null}
+        {tab.pinned ? (
+          <Badge
+            size="sm"
+            className={styles.pin}
+            typography={{ fontFamily: SKETCH_ZH_FONT }}
+            colors={MONO_COLORS}
+          >
+            PIN
+          </Badge>
+        ) : null}
+        {tab.isActive ? (
+          <Badge
+            size="sm"
+            className={styles.active}
+            typography={{ fontFamily: SKETCH_ZH_FONT }}
+            colors={MONO_COLORS}
+          >
+            ACTIVE
+          </Badge>
+        ) : null}
       </span>
     </button>
   );
