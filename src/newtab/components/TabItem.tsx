@@ -1,23 +1,23 @@
-import { Badge } from "sketchbook-ui";
-import styles from "./TabItem.module.css";
-import type { ManagedTab } from "../types";
+import { Badge } from 'sketchbook-ui';
+import styles from './TabItem.module.css';
+import type { ManagedTab } from '../types';
 
 const SKETCH_ZH_FONT =
   '"ZCOOL QingKe HuangYou", "PingFang SC", "Microsoft YaHei", sans-serif';
 
 const MONO_COLORS = {
-  bg: "#ffffff",
-  bgOverlay: "#ffffff",
-  stroke: "#000000",
-  text: "#000000",
+  bg: '#ffffff',
+  bgOverlay: '#ffffff',
+  stroke: '#000000',
+  text: '#000000',
 } as const;
 
-const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("zh-CN", {
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-  hour: "2-digit",
-  minute: "2-digit",
+const DATE_TIME_FORMATTER = new Intl.DateTimeFormat('zh-CN', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
 });
 
 interface TabItemProps {
@@ -28,7 +28,7 @@ interface TabItemProps {
 
 function getUrlLabel(url: string): string {
   if (!url) {
-    return "空白页";
+    return '空白页';
   }
 
   try {
@@ -41,12 +41,12 @@ function getUrlLabel(url: string): string {
 
 function formatLastViewed(lastAccessed: number | null): string {
   if (!lastAccessed) {
-    return "上次查看：未知";
+    return '上次查看：未知';
   }
 
   const diff = Date.now() - lastAccessed;
   if (diff < 60 * 1000) {
-    return "上次查看：刚刚";
+    return '上次查看：刚刚';
   }
 
   if (diff < 60 * 60 * 1000) {
@@ -58,6 +58,18 @@ function formatLastViewed(lastAccessed: number | null): string {
   }
 
   return `上次查看：${DATE_TIME_FORMATTER.format(lastAccessed)}`;
+}
+
+function getResourceLabel(tab: ManagedTab): string {
+  if (tab.resourceLevel === 'High') {
+    return `高资源占用 ${tab.resourceScore}`;
+  }
+
+  if (tab.resourceLevel === 'Medium') {
+    return `中资源占用 ${tab.resourceScore}`;
+  }
+
+  return `低资源占用 ${tab.resourceScore}`;
 }
 
 export default function TabItem({ tab, onActivate, onClose }: TabItemProps) {
@@ -82,6 +94,23 @@ export default function TabItem({ tab, onActivate, onClose }: TabItemProps) {
             {getUrlLabel(tab.url)} | 窗口 #{tab.windowId} | 标签 #{tab.tabId}
           </span>
           <span className={styles.lastViewed}>{formatLastViewed(tab.lastAccessed)}</span>
+          <span className={styles.resourceLine}>
+            <span
+              className={`${styles.resourcePill} ${
+                tab.resourceLevel === 'High'
+                  ? styles.resourceHigh
+                  : tab.resourceLevel === 'Medium'
+                    ? styles.resourceMedium
+                    : styles.resourceLow
+              }`}
+            >
+              {getResourceLabel(tab)}
+            </span>
+            <span className={styles.idleText}>闲置 {tab.idleHours} 小时</span>
+            {tab.isHighResourceIdle ? (
+              <span className={styles.highIdleTag}>高资源闲置</span>
+            ) : null}
+          </span>
         </span>
 
         <span className={styles.badges}>
@@ -93,6 +122,26 @@ export default function TabItem({ tab, onActivate, onClose }: TabItemProps) {
               colors={MONO_COLORS}
             >
               置顶
+            </Badge>
+          ) : null}
+          {tab.audible ? (
+            <Badge
+              size="sm"
+              className={styles.audible}
+              typography={{ fontFamily: SKETCH_ZH_FONT }}
+              colors={MONO_COLORS}
+            >
+              播放中
+            </Badge>
+          ) : null}
+          {tab.discarded ? (
+            <Badge
+              size="sm"
+              className={styles.discarded}
+              typography={{ fontFamily: SKETCH_ZH_FONT }}
+              colors={MONO_COLORS}
+            >
+              已休眠
             </Badge>
           ) : null}
           {tab.isActive ? (

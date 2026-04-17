@@ -1,50 +1,62 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Badge,
-  Button,
-  Input,
-  Modal,
-  SketchProvider,
-  Spinner,
-} from "sketchbook-ui";
-import styles from "./App.module.css";
-import type { DomainGroupData, ManagedTab } from "./types";
-import DomainGroup from "./components/DomainGroup";
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Badge, Button, Input, Modal, SketchProvider, Spinner } from 'sketchbook-ui';
+import styles from './App.module.css';
+import type { DomainGroupData, ManagedTab } from './types';
+import DomainGroup from './components/DomainGroup';
 import {
   collectDuplicateUrlTabIds,
+  collectHighResourceIdleTabIds,
   type GroupSortMode,
   groupTabsByDomain,
   shouldSkipTabInManager,
   tabToManagedTab,
-} from "../utils/tabs";
+} from '../utils/tabs';
 
 const SKETCH_ZH_FONT =
   '"ZCOOL QingKe HuangYou", "PingFang SC", "Microsoft YaHei", sans-serif';
 
 const MONO_COLORS = {
-  bg: "#ffffff",
-  bgOverlay: "#ffffff",
-  stroke: "#000000",
-  text: "#000000",
+  bg: '#ffffff',
+  bgOverlay: '#ffffff',
+  stroke: '#000000',
+  text: '#000000',
 } as const;
 
 const MONO_INPUT_COLORS = {
   ...MONO_COLORS,
-  label: "#000000",
+  label: '#000000',
 } as const;
 
+type PendingAction =
+  | { type: 'closeDomain'; group: DomainGroupData }
+  | { type: 'closeHighIdle'; tabIds: number[] };
+
+const SORT_MODES: GroupSortMode[] = ['default', 'lastViewed', 'resource'];
+
 function isChromeApisReady(): boolean {
-  return typeof chrome !== "undefined" && Boolean(chrome.tabs);
+  return typeof chrome !== 'undefined' && Boolean(chrome.tabs);
+}
+
+function getSortModeLabel(sortMode: GroupSortMode): string {
+  if (sortMode === 'resource') {
+    return '资源占用';
+  }
+
+  if (sortMode === 'lastViewed') {
+    return '上次查看';
+  }
+
+  return '默认';
 }
 
 export default function App() {
   const [tabs, setTabs] = useState<ManagedTab[]>([]);
-  const [search, setSearch] = useState("");
-  const [sortMode, setSortMode] = useState<GroupSortMode>("lastViewed");
+  const [search, setSearch] = useState('');
+  const [sortMode, setSortMode] = useState<GroupSortMode>('resource');
+  const [onlyHighIdle, setOnlyHighIdle] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [pendingCloseGroup, setPendingCloseGroup] =
-    useState<DomainGroupData | null>(null);
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
 
   const refreshTabs = useCallback(async () => {
     if (!isChromeApisReady()) {
@@ -59,7 +71,7 @@ export default function App() {
         .filter((tab): tab is ManagedTab => tab !== null);
       setTabs(parsedTabs);
     } catch (error) {
-      console.error("查询标签页失败", error);
+      console.error('查询标签页失败', error);
     } finally {
       setLoading(false);
     }
@@ -101,9 +113,16 @@ export default function App() {
     };
   }, [refreshTabs]);
 
+  const highResourceIdleTabIds = useMemo(() => collectHighResourceIdleTabIds(tabs), [tabs]);
+
+  const visibleTabs = useMemo(
+    () => (onlyHighIdle ? tabs.filter((tab) => tab.isHighResourceIdle) : tabs),
+    [onlyHighIdle, tabs],
+  );
+
   const allGroups = useMemo<DomainGroupData[]>(
-    () => groupTabsByDomain(tabs, sortMode),
-    [tabs, sortMode],
+    () => groupTabsByDomain(visibleTabs, sortMode),
+    [visibleTabs, sortMode],
   );
 
   const filteredGroups = useMemo(() => {
@@ -111,16 +130,25 @@ export default function App() {
     if (!keyword) {
       return allGroups;
     }
-    return allGroups.filter((group) =>
-      group.domain.toLowerCase().includes(keyword),
-    );
+
+    return allGroups.filter((group) => group.domain.toLowerCase().includes(keyword));
   }, [allGroups, search]);
 
+  const highPressureDomainCount = useMemo(
+    () => groupTabsByDomain(tabs, 'resource').filter((group) => group.resourcePressureLevel === 'High').length,
+    [tabs],
+  );
+
   const totalTabs = tabs.length;
+  const visibleTabCount = visibleTabs.length;
   const totalGroups = allGroups.length;
 
-  const toggleSortByLastViewed = useCallback(() => {
-    setSortMode((prev) => (prev === "default" ? "lastViewed" : "default"));
+  const cycleSortMode = useCallback(() => {
+    setSortMode((prev) => {
+      const currentIndex = SORT_MODES.indexOf(prev);
+      const nextIndex = (currentIndex + 1) % SORT_MODES.length;
+      return SORT_MODES[nextIndex];
+    });
   }, []);
 
   const runTabRemoval = useCallback(
@@ -139,7 +167,7 @@ export default function App() {
         await refreshTabs();
         console.info(doneText);
       } catch (error) {
-        console.error("关闭标签页失败", error);
+        console.error('关闭标签页失败', error);
       } finally {
         setBusy(false);
       }
@@ -152,7 +180,7 @@ export default function App() {
       await chrome.tabs.update(tab.tabId, { active: true });
       await chrome.windows.update(tab.windowId, { focused: true });
     } catch (error) {
-      console.error("激活标签页失败", error);
+      console.error('激活标签页失败', error);
     }
   }, []);
 
@@ -163,7 +191,7 @@ export default function App() {
         await chrome.tabs.remove(tab.tabId);
         await refreshTabs();
       } catch (error) {
-        console.error("关闭单个标签页失败", error);
+        console.error('关闭单个标签页失败', error);
       } finally {
         setBusy(false);
       }
@@ -172,75 +200,87 @@ export default function App() {
   );
 
   const handleCloseDomainTabs = useCallback((group: DomainGroupData) => {
-    setPendingCloseGroup(group);
+    setPendingAction({ type: 'closeDomain', group });
   }, []);
 
-  const cancelCloseDomainTabs = useCallback(() => {
-    setPendingCloseGroup(null);
-  }, []);
-
-  const confirmCloseDomainTabs = useCallback(async () => {
-    if (!pendingCloseGroup) {
+  const handleCloseHighResourceIdleTabs = useCallback(() => {
+    if (!highResourceIdleTabIds.length) {
+      window.alert('当前没有可清理的高资源闲置标签页。');
       return;
     }
 
-    const group = pendingCloseGroup;
-    setPendingCloseGroup(null);
+    setPendingAction({ type: 'closeHighIdle', tabIds: highResourceIdleTabIds });
+  }, [highResourceIdleTabIds]);
 
-    const tabIds = group.tabs.map((tab) => tab.tabId);
-    if (!tabIds.length) {
+  const cancelPendingAction = useCallback(() => {
+    setPendingAction(null);
+  }, []);
+
+  const confirmPendingAction = useCallback(async () => {
+    if (!pendingAction) {
       return;
     }
 
+    setPendingAction(null);
     setBusy(true);
+
     try {
-      await chrome.tabs.remove(tabIds);
+      if (pendingAction.type === 'closeDomain') {
+        const tabIds = pendingAction.group.tabs.map((tab) => tab.tabId);
+        if (!tabIds.length) {
+          return;
+        }
+
+        await chrome.tabs.remove(tabIds);
+        console.info(`已关闭 ${pendingAction.group.domain} 下的标签页`);
+      } else {
+        if (!pendingAction.tabIds.length) {
+          return;
+        }
+
+        await chrome.tabs.remove(pendingAction.tabIds);
+        console.info(`已关闭 ${pendingAction.tabIds.length} 个高资源闲置标签页`);
+      }
+
       await refreshTabs();
-      console.info(`已关闭 ${group.domain} 下的标签页`);
     } catch (error) {
-      console.error("关闭标签页失败", error);
+      console.error('关闭标签页失败', error);
     } finally {
       setBusy(false);
     }
-  }, [pendingCloseGroup, refreshTabs]);
+  }, [pendingAction, refreshTabs]);
 
   const closeDuplicateUrls = useCallback(async () => {
     const tabIds = collectDuplicateUrlTabIds(tabs);
     if (!tabIds.length) {
-      window.alert("当前没有重复地址标签。");
+      window.alert('当前没有重复 URL 标签页。');
       return;
     }
 
-    await runTabRemoval(
-      tabIds,
-      `是否关闭 ${tabIds.length} 个重复地址标签？`,
-      "已关闭重复地址标签",
-    );
+    await runTabRemoval(tabIds, `是否关闭 ${tabIds.length} 个重复 URL 标签页？`, '已关闭重复 URL 标签页');
   }, [runTabRemoval, tabs]);
 
   const restoreLatestClosed = useCallback(async () => {
     if (!chrome.sessions) {
-      window.alert("当前浏览器不支持会话恢复接口。");
+      window.alert('当前浏览器不支持会话恢复接口。');
       return;
     }
 
     setBusy(true);
     try {
-      const sessions = await chrome.sessions.getRecentlyClosed({
-        maxResults: 1,
-      });
+      const sessions = await chrome.sessions.getRecentlyClosed({ maxResults: 1 });
       const latest = sessions[0];
       const sessionId = latest?.tab?.sessionId ?? latest?.window?.sessionId;
 
       if (!sessionId) {
-        window.alert("没有可恢复的最近关闭记录。");
+        window.alert('没有可恢复的最近关闭记录。');
         return;
       }
 
       await chrome.sessions.restore(sessionId);
       await refreshTabs();
     } catch (error) {
-      console.error("恢复最近关闭失败", error);
+      console.error('恢复最近关闭失败', error);
     } finally {
       setBusy(false);
     }
@@ -255,6 +295,15 @@ export default function App() {
       </SketchProvider>
     );
   }
+
+  const modalTitle =
+    pendingAction?.type === 'closeDomain' ? '关闭该站全部标签页' : '关闭高资源闲置标签页';
+
+  const modalText = pendingAction
+    ? pendingAction.type === 'closeDomain'
+      ? `是否关闭 ${pendingAction.group.domain} 下的 ${pendingAction.group.count} 个标签页？`
+      : `是否关闭 ${pendingAction.tabIds.length} 个高资源闲置标签页？`
+    : '';
 
   return (
     <SketchProvider>
@@ -272,9 +321,7 @@ export default function App() {
               colors={MONO_COLORS}
               size="lg"
             >
-              <div className={styles.metaText}>
-                {busy ? "操作执行中" : "实时同步已开启"}
-              </div>
+              <div className={styles.metaText}>{busy ? '正在执行操作' : '实时同步已开启'}</div>
             </Badge>
           </section>
 
@@ -292,16 +339,58 @@ export default function App() {
 
             <div className={styles.stats}>
               <Badge className={styles.statCard}>
-                <span>总标签</span>
+                <span>标签总数</span>
                 <strong>{totalTabs}</strong>
               </Badge>
               <Badge className={styles.statCard}>
-                <span>域名组</span>
+                <span>当前展示</span>
+                <strong>{visibleTabCount}</strong>
+              </Badge>
+              <Badge className={styles.statCard}>
+                <span>域名分组</span>
                 <strong>{totalGroups}</strong>
+              </Badge>
+              <Badge className={styles.statCard}>
+                <span>高压域名</span>
+                <strong>{highPressureDomainCount}</strong>
+              </Badge>
+              <Badge className={styles.statCard}>
+                <span>高资闲置</span>
+                <strong>{highResourceIdleTabIds.length}</strong>
               </Badge>
             </div>
 
             <div className={styles.actions}>
+              <Button
+                type="button"
+                size="sm"
+                onClick={cycleSortMode}
+                typography={{ fontFamily: SKETCH_ZH_FONT }}
+                colors={MONO_COLORS}
+              >
+                <div className={styles.buttonText}>排序方式：{getSortModeLabel(sortMode)}</div>
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => setOnlyHighIdle((prev) => !prev)}
+                typography={{ fontFamily: SKETCH_ZH_FONT }}
+                colors={MONO_COLORS}
+              >
+                <div className={styles.buttonText}>
+                  {onlyHighIdle ? '仅看高资源闲置：开' : '仅看高资源闲置：关'}
+                </div>
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleCloseHighResourceIdleTabs}
+                disabled={busy || highResourceIdleTabIds.length === 0}
+                typography={{ fontFamily: SKETCH_ZH_FONT }}
+                colors={MONO_COLORS}
+              >
+                <div className={styles.buttonText}>一键关闭高资源闲置</div>
+              </Button>
               <Button
                 type="button"
                 size="sm"
@@ -310,20 +399,7 @@ export default function App() {
                 typography={{ fontFamily: SKETCH_ZH_FONT }}
                 colors={MONO_COLORS}
               >
-                <div className={styles.buttonText}>关闭重复地址</div>
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                onClick={toggleSortByLastViewed}
-                typography={{ fontFamily: SKETCH_ZH_FONT }}
-                colors={MONO_COLORS}
-              >
-                <div className={styles.buttonText}>
-                  {sortMode === "lastViewed"
-                    ? "上次查看排序：开"
-                    : "上次查看排序：关"}
-                </div>
+                <div className={styles.buttonText}>关闭重复 URL</div>
               </Button>
               <Button
                 type="button"
@@ -342,18 +418,12 @@ export default function App() {
         {loading ? (
           <div className={styles.centerTip}>
             <div className={styles.loadingWrap}>
-              <Spinner
-                size="md"
-                variant="spiral"
-                colors={{ stroke: "#000000" }}
-              />
+              <Spinner size="md" variant="spiral" colors={{ stroke: '#000000' }} />
               <span>正在加载标签页...</span>
             </div>
           </div>
         ) : filteredGroups.length === 0 ? (
-          <div className={styles.centerTip}>
-            没有匹配域名组，试试清空搜索条件。
-          </div>
+          <div className={styles.centerTip}>没有匹配结果，请尝试调整筛选条件。</div>
         ) : (
           <section className={styles.groupList}>
             {filteredGroups.map((group) => (
@@ -369,9 +439,9 @@ export default function App() {
         )}
 
         <Modal
-          isOpen={Boolean(pendingCloseGroup)}
-          onClose={cancelCloseDomainTabs}
-          title="关闭全部标签页"
+          isOpen={Boolean(pendingAction)}
+          onClose={cancelPendingAction}
+          title={modalTitle}
           size="sm"
           colors={MONO_COLORS}
           typography={{ fontFamily: SKETCH_ZH_FONT, titleWeight: 500 }}
@@ -380,7 +450,7 @@ export default function App() {
               <Button
                 type="button"
                 size="sm"
-                onClick={cancelCloseDomainTabs}
+                onClick={cancelPendingAction}
                 typography={{ fontFamily: SKETCH_ZH_FONT }}
                 colors={MONO_COLORS}
               >
@@ -389,7 +459,7 @@ export default function App() {
               <Button
                 type="button"
                 size="sm"
-                onClick={() => void confirmCloseDomainTabs()}
+                onClick={() => void confirmPendingAction()}
                 disabled={busy}
                 typography={{ fontFamily: SKETCH_ZH_FONT }}
                 colors={MONO_COLORS}
@@ -399,11 +469,7 @@ export default function App() {
             </div>
           }
         >
-          <div className={styles.modalText}>
-            {pendingCloseGroup
-              ? `是否关闭 ${pendingCloseGroup.domain} 下的 ${pendingCloseGroup.count} 个标签页？`
-              : ""}
-          </div>
+          <div className={styles.modalText}>{modalText}</div>
         </Modal>
       </main>
     </SketchProvider>

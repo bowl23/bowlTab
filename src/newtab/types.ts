@@ -1,4 +1,6 @@
-﻿export interface ManagedTab {
+export type ResourceLevel = 'Low' | 'Medium' | 'High';
+
+export interface ManagedTab {
   tabId: number;
   windowId: number;
   title: string;
@@ -8,8 +10,13 @@
   domain: string;
   host: string;
   isActive: boolean;
+  audible: boolean;
   pinned: boolean;
   discarded: boolean;
+  resourceScore: number;
+  resourceLevel: ResourceLevel;
+  idleHours: number;
+  isHighResourceIdle: boolean;
   index: number;
 }
 
@@ -18,4 +25,7 @@ export interface DomainGroupData {
   tabs: ManagedTab[];
   count: number;
   pinnedCount: number;
+  resourcePressureScore: number;
+  resourcePressureLevel: ResourceLevel;
+  highResourceIdleCount: number;
 }

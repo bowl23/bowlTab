@@ -6,7 +6,6 @@
   align-items: center;
   gap: 8px;
   padding: 6px 12px;
-  /* background-color: pink; */
 }
 
 .row:last-child {
@@ -38,7 +37,8 @@
 
 .activateButton:hover .title,
 .activateButton:hover .meta,
-.activateButton:hover .lastViewed {
+.activateButton:hover .lastViewed,
+.activateButton:hover .idleText {
   color: #ffffff;
 }
 
@@ -125,15 +125,71 @@
   text-overflow: ellipsis;
 }
 
+.resourceLine {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.resourcePill {
+  font-size: 10px;
+  font-family: var(--font-zh-sketch);
+  border-radius: 999px;
+  border: 1px solid #000000;
+  padding: 1px 7px;
+  line-height: 1.4;
+}
+
+.resourceHigh {
+  background: #ffe2e2;
+}
+
+.resourceMedium {
+  background: #fff0cf;
+}
+
+.resourceLow {
+  background: #e1f8df;
+}
+
+.idleText {
+  font-size: 10px;
+  font-family: var(--font-zh-sketch);
+  color: var(--text-secondary);
+}
+
+.highIdleTag {
+  font-size: 10px;
+  font-family: var(--font-zh-sketch);
+  border: 1px solid #000000;
+  border-radius: 999px;
+  padding: 1px 7px;
+  background: #fbd5d5;
+}
+
 .badges {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 5px;
 }
 
 .pin,
-.active {
+.active,
+.audible,
+.discarded {
   border-radius: 999px;
   font-size: 10px;
   font-weight: 700;
   padding: 2px 7px;
+}
+
+.audible {
+  background: #e9f2ff;
+}
+
+.discarded {
+  background: #efefef;
 }

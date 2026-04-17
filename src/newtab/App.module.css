@@ -103,11 +103,13 @@
 .stats {
   grid-area: stats;
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
 }
 
 .statCard {
-  min-width: 76px;
+  min-width: 84px;
   display: grid;
   gap: 2px;
   border-radius: 11px;
@@ -149,8 +151,7 @@
 }
 
 .actions button .buttonText {
-  /* background-color: pink; */
-  margin: 0 15px;
+  margin: 0 8px;
 }
 .actions button:hover {
   color: #ffffff;
