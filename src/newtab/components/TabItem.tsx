@@ -12,6 +12,14 @@ const MONO_COLORS = {
   text: "#000000",
 } as const;
 
+const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("zh-CN", {
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
 interface TabItemProps {
   tab: ManagedTab;
   onActivate: (tab: ManagedTab) => void;
@@ -29,6 +37,27 @@ function getUrlLabel(url: string): string {
   } catch {
     return url;
   }
+}
+
+function formatLastViewed(lastAccessed: number | null): string {
+  if (!lastAccessed) {
+    return "上次查看：未知";
+  }
+
+  const diff = Date.now() - lastAccessed;
+  if (diff < 60 * 1000) {
+    return "上次查看：刚刚";
+  }
+
+  if (diff < 60 * 60 * 1000) {
+    return `上次查看：${Math.floor(diff / (60 * 1000))} 分钟前`;
+  }
+
+  if (diff < 24 * 60 * 60 * 1000) {
+    return `上次查看：${Math.floor(diff / (60 * 60 * 1000))} 小时前`;
+  }
+
+  return `上次查看：${DATE_TIME_FORMATTER.format(lastAccessed)}`;
 }
 
 export default function TabItem({ tab, onActivate, onClose }: TabItemProps) {
@@ -52,6 +81,7 @@ export default function TabItem({ tab, onActivate, onClose }: TabItemProps) {
           <span className={styles.meta}>
             {getUrlLabel(tab.url)} | 窗口 #{tab.windowId} | 标签 #{tab.tabId}
           </span>
+          <span className={styles.lastViewed}>{formatLastViewed(tab.lastAccessed)}</span>
         </span>
 
         <span className={styles.badges}>

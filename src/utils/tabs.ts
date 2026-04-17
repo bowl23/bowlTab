@@ -14,6 +14,10 @@ export function tabToManagedTab(tab: chrome.tabs.Tab): ManagedTab | null {
 
   const url = tab.url ?? '';
   const domain = getMainDomain(url);
+  const lastAccessed =
+    typeof (tab as { lastAccessed?: number }).lastAccessed === 'number'
+      ? (tab as { lastAccessed?: number }).lastAccessed ?? null
+      : null;
 
   return {
     tabId: tab.id,
@@ -21,6 +25,7 @@ export function tabToManagedTab(tab: chrome.tabs.Tab): ManagedTab | null {
     title: tab.title?.trim() || '(无标题)',
     url,
     favIconUrl: tab.favIconUrl,
+    lastAccessed,
     domain,
     host: getHostname(url),
     isActive: Boolean(tab.active),
@@ -31,9 +36,20 @@ export function tabToManagedTab(tab: chrome.tabs.Tab): ManagedTab | null {
 }
 
 export function shouldSkipTabInManager(tab: chrome.tabs.Tab): boolean {
-  const url = tab.url ?? '';
-  if (!url) {
-    return false;
+  const url = (tab.url ?? '').trim();
+  const lowerUrl = url.toLowerCase();
+  const domain = getMainDomain(url);
+
+  if (domain === 'unknown') {
+    return true;
+  }
+
+  if (
+    domain === 'newtab' ||
+    lowerUrl.startsWith('chrome://newtab') ||
+    lowerUrl.startsWith('chrome://new-tab-page/')
+  ) {
+    return true;
   }
 
   if (url.startsWith('chrome-extension://')) {
@@ -43,7 +59,16 @@ export function shouldSkipTabInManager(tab: chrome.tabs.Tab): boolean {
   return false;
 }
 
-export function groupTabsByDomain(tabs: ManagedTab[]): DomainGroupData[] {
+export type GroupSortMode = 'default' | 'lastViewed';
+
+function getLastAccessedValue(tab: ManagedTab): number {
+  return tab.lastAccessed ?? 0;
+}
+
+export function groupTabsByDomain(
+  tabs: ManagedTab[],
+  sortMode: GroupSortMode = 'default',
+): DomainGroupData[] {
   const grouped = new Map<string, ManagedTab[]>();
 
   for (const tab of tabs) {
@@ -55,6 +80,13 @@ export function groupTabsByDomain(tabs: ManagedTab[]): DomainGroupData[] {
   return [...grouped.entries()]
     .map(([domain, groupTabs]) => {
       const sortedTabs = [...groupTabs].sort((a, b) => {
+        if (sortMode === 'lastViewed') {
+          const lastViewedDiff = getLastAccessedValue(b) - getLastAccessedValue(a);
+          if (lastViewedDiff !== 0) {
+            return lastViewedDiff;
+          }
+        }
+
         if (a.pinned !== b.pinned) {
           return Number(b.pinned) - Number(a.pinned);
         }
@@ -74,6 +106,14 @@ export function groupTabsByDomain(tabs: ManagedTab[]): DomainGroupData[] {
       };
     })
     .sort((a, b) => {
+      if (sortMode === 'lastViewed') {
+        const aLatest = Math.max(...a.tabs.map(getLastAccessedValue));
+        const bLatest = Math.max(...b.tabs.map(getLastAccessedValue));
+        if (bLatest !== aLatest) {
+          return bLatest - aLatest;
+        }
+      }
+
       if (b.count !== a.count) {
         return b.count - a.count;
       }

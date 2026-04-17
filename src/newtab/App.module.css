@@ -138,7 +138,7 @@
 .actions button {
   border-radius: 9px;
   color: #000000;
-  padding: 7px 10px;
+  padding: 7px 20px;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -148,13 +148,16 @@
     transform 120ms ease;
 }
 
+.actions button .buttonText {
+  /* background-color: pink; */
+  margin: 0 15px;
+}
 .actions button:hover {
   color: #ffffff;
 }
 
 .actions button:active {
   transform: translate(1px, 1px);
-  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.3);
 }
 
 .actions button:disabled {
@@ -162,6 +165,20 @@
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+}
+
+.modalText {
+  font-family: var(--font-zh-sketch);
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 100;
+}
+
+.modalActions {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
 }
 
 .groupList {

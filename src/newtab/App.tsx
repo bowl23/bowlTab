@@ -1,10 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Badge, Button, Input, SketchProvider, Spinner } from "sketchbook-ui";
+import {
+  Badge,
+  Button,
+  Input,
+  Modal,
+  SketchProvider,
+  Spinner,
+} from "sketchbook-ui";
 import styles from "./App.module.css";
 import type { DomainGroupData, ManagedTab } from "./types";
 import DomainGroup from "./components/DomainGroup";
 import {
   collectDuplicateUrlTabIds,
+  type GroupSortMode,
   groupTabsByDomain,
   shouldSkipTabInManager,
   tabToManagedTab,
@@ -32,8 +40,11 @@ function isChromeApisReady(): boolean {
 export default function App() {
   const [tabs, setTabs] = useState<ManagedTab[]>([]);
   const [search, setSearch] = useState("");
+  const [sortMode, setSortMode] = useState<GroupSortMode>("lastViewed");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [pendingCloseGroup, setPendingCloseGroup] =
+    useState<DomainGroupData | null>(null);
 
   const refreshTabs = useCallback(async () => {
     if (!isChromeApisReady()) {
@@ -46,7 +57,6 @@ export default function App() {
         .filter((tab) => !shouldSkipTabInManager(tab))
         .map(tabToManagedTab)
         .filter((tab): tab is ManagedTab => tab !== null);
-
       setTabs(parsedTabs);
     } catch (error) {
       console.error("查询标签页失败", error);
@@ -92,8 +102,8 @@ export default function App() {
   }, [refreshTabs]);
 
   const allGroups = useMemo<DomainGroupData[]>(
-    () => groupTabsByDomain(tabs),
-    [tabs],
+    () => groupTabsByDomain(tabs, sortMode),
+    [tabs, sortMode],
   );
 
   const filteredGroups = useMemo(() => {
@@ -101,7 +111,6 @@ export default function App() {
     if (!keyword) {
       return allGroups;
     }
-
     return allGroups.filter((group) =>
       group.domain.toLowerCase().includes(keyword),
     );
@@ -109,6 +118,10 @@ export default function App() {
 
   const totalTabs = tabs.length;
   const totalGroups = allGroups.length;
+
+  const toggleSortByLastViewed = useCallback(() => {
+    setSortMode((prev) => (prev === "default" ? "lastViewed" : "default"));
+  }, []);
 
   const runTabRemoval = useCallback(
     async (tabIds: number[], confirmText: string, doneText: string) => {
@@ -158,16 +171,38 @@ export default function App() {
     [refreshTabs],
   );
 
-  const handleCloseDomainTabs = useCallback(
-    async (group: DomainGroupData) => {
-      await runTabRemoval(
-        group.tabs.map((tab) => tab.tabId),
-        `是否关闭 ${group.domain} 下的 ${group.count} 个标签页？`,
-        `已关闭 ${group.domain} 下的标签页`,
-      );
-    },
-    [runTabRemoval],
-  );
+  const handleCloseDomainTabs = useCallback((group: DomainGroupData) => {
+    setPendingCloseGroup(group);
+  }, []);
+
+  const cancelCloseDomainTabs = useCallback(() => {
+    setPendingCloseGroup(null);
+  }, []);
+
+  const confirmCloseDomainTabs = useCallback(async () => {
+    if (!pendingCloseGroup) {
+      return;
+    }
+
+    const group = pendingCloseGroup;
+    setPendingCloseGroup(null);
+
+    const tabIds = group.tabs.map((tab) => tab.tabId);
+    if (!tabIds.length) {
+      return;
+    }
+
+    setBusy(true);
+    try {
+      await chrome.tabs.remove(tabIds);
+      await refreshTabs();
+      console.info(`已关闭 ${group.domain} 下的标签页`);
+    } catch (error) {
+      console.error("关闭标签页失败", error);
+    } finally {
+      setBusy(false);
+    }
+  }, [pendingCloseGroup, refreshTabs]);
 
   const closeDuplicateUrls = useCallback(async () => {
     const tabIds = collectDuplicateUrlTabIds(tabs);
@@ -231,7 +266,6 @@ export default function App() {
                 <h1>bowl tab manager</h1>
               </div>
             </div>
-            {/* <div className={styles.heroMeta}></div> */}
             <Badge
               className={styles.metaPill}
               typography={{ fontFamily: SKETCH_ZH_FONT }}
@@ -258,11 +292,11 @@ export default function App() {
 
             <div className={styles.stats}>
               <Badge className={styles.statCard}>
-                <span>总标签:</span>
+                <span>总标签</span>
                 <strong>{totalTabs}</strong>
               </Badge>
               <Badge className={styles.statCard}>
-                <span>域名组:</span>
+                <span>域名组</span>
                 <strong>{totalGroups}</strong>
               </Badge>
             </div>
@@ -276,7 +310,20 @@ export default function App() {
                 typography={{ fontFamily: SKETCH_ZH_FONT }}
                 colors={MONO_COLORS}
               >
-                关闭重复地址
+                <div className={styles.buttonText}>关闭重复地址</div>
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={toggleSortByLastViewed}
+                typography={{ fontFamily: SKETCH_ZH_FONT }}
+                colors={MONO_COLORS}
+              >
+                <div className={styles.buttonText}>
+                  {sortMode === "lastViewed"
+                    ? "上次查看排序：开"
+                    : "上次查看排序：关"}
+                </div>
               </Button>
               <Button
                 type="button"
@@ -286,7 +333,7 @@ export default function App() {
                 typography={{ fontFamily: SKETCH_ZH_FONT }}
                 colors={MONO_COLORS}
               >
-                恢复最近关闭
+                <div className={styles.buttonText}>恢复最近关闭</div>
               </Button>
             </div>
           </header>
@@ -320,6 +367,44 @@ export default function App() {
             ))}
           </section>
         )}
+
+        <Modal
+          isOpen={Boolean(pendingCloseGroup)}
+          onClose={cancelCloseDomainTabs}
+          title="关闭全部标签页"
+          size="sm"
+          colors={MONO_COLORS}
+          typography={{ fontFamily: SKETCH_ZH_FONT, titleWeight: 500 }}
+          footer={
+            <div className={styles.modalActions}>
+              <Button
+                type="button"
+                size="sm"
+                onClick={cancelCloseDomainTabs}
+                typography={{ fontFamily: SKETCH_ZH_FONT }}
+                colors={MONO_COLORS}
+              >
+                取消
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => void confirmCloseDomainTabs()}
+                disabled={busy}
+                typography={{ fontFamily: SKETCH_ZH_FONT }}
+                colors={MONO_COLORS}
+              >
+                确认关闭
+              </Button>
+            </div>
+          }
+        >
+          <div className={styles.modalText}>
+            {pendingCloseGroup
+              ? `是否关闭 ${pendingCloseGroup.domain} 下的 ${pendingCloseGroup.count} 个标签页？`
+              : ""}
+          </div>
+        </Modal>
       </main>
     </SketchProvider>
   );

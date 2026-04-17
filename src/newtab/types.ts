@@ -4,6 +4,7 @@
   title: string;
   url: string;
   favIconUrl?: string;
+  lastAccessed: number | null;
   domain: string;
   host: string;
   isActive: boolean;
