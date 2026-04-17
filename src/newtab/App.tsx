@@ -4,9 +4,7 @@ import styles from "./App.module.css";
 import type { DomainGroupData, ManagedTab } from "./types";
 import DomainGroup from "./components/DomainGroup";
 import {
-  collectBlankTabIds,
   collectDuplicateUrlTabIds,
-  collectRepeatedDomainExtraTabIds,
   groupTabsByDomain,
   shouldSkipTabInManager,
   tabToManagedTab,
@@ -51,7 +49,7 @@ export default function App() {
 
       setTabs(parsedTabs);
     } catch (error) {
-      console.error("Failed to query tabs", error);
+      console.error("查询标签页失败", error);
     } finally {
       setLoading(false);
     }
@@ -128,7 +126,7 @@ export default function App() {
         await refreshTabs();
         console.info(doneText);
       } catch (error) {
-        console.error("Failed to remove tabs", error);
+        console.error("关闭标签页失败", error);
       } finally {
         setBusy(false);
       }
@@ -141,66 +139,53 @@ export default function App() {
       await chrome.tabs.update(tab.tabId, { active: true });
       await chrome.windows.update(tab.windowId, { focused: true });
     } catch (error) {
-      console.error("Failed to activate tab", error);
+      console.error("激活标签页失败", error);
     }
   }, []);
+
+  const handleCloseTab = useCallback(
+    async (tab: ManagedTab) => {
+      setBusy(true);
+      try {
+        await chrome.tabs.remove(tab.tabId);
+        await refreshTabs();
+      } catch (error) {
+        console.error("关闭单个标签页失败", error);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [refreshTabs],
+  );
 
   const handleCloseDomainTabs = useCallback(
     async (group: DomainGroupData) => {
       await runTabRemoval(
         group.tabs.map((tab) => tab.tabId),
         `是否关闭 ${group.domain} 下的 ${group.count} 个标签页？`,
-        `Closed tabs for ${group.domain}`,
+        `已关闭 ${group.domain} 下的标签页`,
       );
     },
     [runTabRemoval],
   );
 
-  const closeBlankTabs = useCallback(async () => {
-    const tabIds = collectBlankTabIds(tabs);
-    if (!tabIds.length) {
-      window.alert("当前没有空白页标签。");
-      return;
-    }
-
-    await runTabRemoval(
-      tabIds,
-      `是否关闭 ${tabIds.length} 个空白页标签？`,
-      "Closed blank tabs",
-    );
-  }, [runTabRemoval, tabs]);
-
   const closeDuplicateUrls = useCallback(async () => {
     const tabIds = collectDuplicateUrlTabIds(tabs);
     if (!tabIds.length) {
-      window.alert("当前没有重复 URL 标签。");
+      window.alert("当前没有重复地址标签。");
       return;
     }
 
     await runTabRemoval(
       tabIds,
-      `是否关闭 ${tabIds.length} 个重复 URL 标签？`,
-      "Closed duplicate URL tabs",
+      `是否关闭 ${tabIds.length} 个重复地址标签？`,
+      "已关闭重复地址标签",
     );
   }, [runTabRemoval, tabs]);
 
-  const closeRepeatedDomainExtras = useCallback(async () => {
-    const tabIds = collectRepeatedDomainExtraTabIds(allGroups);
-    if (!tabIds.length) {
-      window.alert("当前没有重复站点需要清理。");
-      return;
-    }
-
-    await runTabRemoval(
-      tabIds,
-      `是否关闭 ${tabIds.length} 个重复站点的多余标签？`,
-      "Closed repeated domain extra tabs",
-    );
-  }, [allGroups, runTabRemoval]);
-
   const restoreLatestClosed = useCallback(async () => {
     if (!chrome.sessions) {
-      window.alert("当前浏览器不支持 sessions API。");
+      window.alert("当前浏览器不支持会话恢复接口。");
       return;
     }
 
@@ -220,7 +205,7 @@ export default function App() {
       await chrome.sessions.restore(sessionId);
       await refreshTabs();
     } catch (error) {
-      console.error("Failed to restore session", error);
+      console.error("恢复最近关闭失败", error);
     } finally {
       setBusy(false);
     }
@@ -239,94 +224,73 @@ export default function App() {
   return (
     <SketchProvider>
       <main className={styles.page}>
-        <section className={styles.hero}>
-          <div className={styles.brand}>
-            <img
-              className={styles.logo}
-              src="/icons/icon32.png"
-              alt="Bowl icon"
-            />
-            <div>
-              <h1>Bowl Tab Manager</h1>
+        <div className={styles.stickyHeader}>
+          <section className={styles.hero}>
+            <div className={styles.brand}>
+              <div>
+                <h1>bowl tab manager</h1>
+              </div>
             </div>
-          </div>
-          <div className={styles.heroMeta}>
+            {/* <div className={styles.heroMeta}></div> */}
             <Badge
               className={styles.metaPill}
               typography={{ fontFamily: SKETCH_ZH_FONT }}
               colors={MONO_COLORS}
+              size="lg"
             >
-              {busy ? "操作执行中" : "实时同步已开启"}
+              <div className={styles.metaText}>
+                {busy ? "操作执行中" : "实时同步已开启"}
+              </div>
             </Badge>
-          </div>
-        </section>
+          </section>
 
-        <header className={styles.toolbar}>
-          <div className={styles.searchWrap}>
-            <Input
-              className={styles.searchInput}
-              placeholder="按域名过滤，例如 github.com"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              typography={{ fontFamily: SKETCH_ZH_FONT }}
-              colors={MONO_INPUT_COLORS}
-            />
-          </div>
-
-          <div className={styles.stats}>
-            <div className={styles.statCard}>
-              <span>总标签</span>
-              <strong>{totalTabs}</strong>
+          <header className={styles.toolbar}>
+            <div className={styles.searchWrap}>
+              <Input
+                className={styles.searchInput}
+                placeholder="按域名过滤，例如 github.com"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                typography={{ fontFamily: SKETCH_ZH_FONT }}
+                colors={MONO_INPUT_COLORS}
+              />
             </div>
-            <div className={styles.statCard}>
-              <span>域名组</span>
-              <strong>{totalGroups}</strong>
-            </div>
-          </div>
 
-          <div className={styles.actions}>
-            <Button
-              type="button"
-              size="sm"
-              onClick={closeRepeatedDomainExtras}
-              disabled={busy}
-              typography={{ fontFamily: SKETCH_ZH_FONT }}
-              colors={MONO_COLORS}
-            >
-              关闭重复站点
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              onClick={closeDuplicateUrls}
-              disabled={busy}
-              typography={{ fontFamily: SKETCH_ZH_FONT }}
-              colors={MONO_COLORS}
-            >
-              关闭重复 URL
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              onClick={closeBlankTabs}
-              disabled={busy}
-              typography={{ fontFamily: SKETCH_ZH_FONT }}
-              colors={MONO_COLORS}
-            >
-              关闭空白页
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              onClick={restoreLatestClosed}
-              disabled={busy}
-              typography={{ fontFamily: SKETCH_ZH_FONT }}
-              colors={MONO_COLORS}
-            >
-              恢复最近关闭
-            </Button>
-          </div>
-        </header>
+            <div className={styles.stats}>
+              <Badge className={styles.statCard}>
+                <span>总标签:</span>
+                <strong>{totalTabs}</strong>
+              </Badge>
+              <Badge className={styles.statCard}>
+                <span>域名组:</span>
+                <strong>{totalGroups}</strong>
+              </Badge>
+            </div>
+
+            <div className={styles.actions}>
+              <Button
+                type="button"
+                size="sm"
+                onClick={closeDuplicateUrls}
+                disabled={busy}
+                typography={{ fontFamily: SKETCH_ZH_FONT }}
+                colors={MONO_COLORS}
+              >
+                关闭重复地址
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={restoreLatestClosed}
+                disabled={busy}
+                typography={{ fontFamily: SKETCH_ZH_FONT }}
+                colors={MONO_COLORS}
+              >
+                恢复最近关闭
+              </Button>
+            </div>
+          </header>
+        </div>
 
         {loading ? (
           <div className={styles.centerTip}>
@@ -351,6 +315,7 @@ export default function App() {
                 group={group}
                 onCloseAll={handleCloseDomainTabs}
                 onActivateTab={handleActivateTab}
+                onCloseTab={handleCloseTab}
               />
             ))}
           </section>

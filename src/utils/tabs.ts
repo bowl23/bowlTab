@@ -81,21 +81,6 @@ export function groupTabsByDomain(tabs: ManagedTab[]): DomainGroupData[] {
     });
 }
 
-export function collectBlankTabIds(tabs: ManagedTab[]): number[] {
-  const blankPatterns = ['about:blank', 'chrome://newtab/', 'chrome://new-tab-page/'];
-
-  return tabs
-    .filter((tab) => {
-      const url = tab.url.trim();
-      if (!url) {
-        return true;
-      }
-
-      return blankPatterns.includes(url);
-    })
-    .map((tab) => tab.tabId);
-}
-
 export function collectDuplicateUrlTabIds(tabs: ManagedTab[]): number[] {
   const byUrl = new Map<string, ManagedTab[]>();
 
@@ -133,18 +118,4 @@ export function collectDuplicateUrlTabIds(tabs: ManagedTab[]): number[] {
   }
 
   return removable;
-}
-
-export function collectRepeatedDomainExtraTabIds(groups: DomainGroupData[]): number[] {
-  const tabIds: number[] = [];
-
-  for (const group of groups) {
-    if (group.tabs.length <= 1) {
-      continue;
-    }
-
-    tabIds.push(...group.tabs.slice(1).map((tab) => tab.tabId));
-  }
-
-  return tabIds;
 }

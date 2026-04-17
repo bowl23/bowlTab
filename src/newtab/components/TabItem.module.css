@@ -1,7 +1,20 @@
 .row {
   width: 100%;
-  border: 0;
   border-bottom: 1px dashed var(--line-strong);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+.activateButton {
+  width: 100%;
+  border: 0;
   background: transparent;
   color: inherit;
   display: grid;
@@ -9,28 +22,55 @@
   align-items: center;
   gap: 10px;
   text-align: left;
-  padding: 10px 12px;
+  padding: 4px 8px;
   cursor: pointer;
-  transition: background-color 120ms ease, color 120ms ease;
+  border-radius: 8px;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
 }
 
-.row:last-child {
-  border-bottom: 0;
-}
-
-.row:hover {
-  background: #000000;
+.activateButton:hover {
+  background: #898686;
   color: #ffffff;
 }
 
-.row:hover .title,
-.row:hover .meta {
+.activateButton:hover .title,
+.activateButton:hover .meta {
   color: #ffffff;
 }
 
-.row:hover .fallbackIcon {
+.activateButton:hover .fallbackIcon {
   background: #ffffff;
   color: #000000;
+}
+
+.closeButton {
+  border: 2px solid var(--line-strong);
+  background: #ffffff;
+  color: #000000;
+  border-radius: 7px;
+  width: 26px;
+  height: 24px;
+  line-height: 1;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.2);
+  transition:
+    background-color 120ms ease,
+    color 120ms ease,
+    transform 120ms ease;
+}
+
+.closeButton:hover {
+  background: #898686;
+  color: #ffffff;
+  border: 2px solid #898686;
+}
+
+.closeButton:active {
+  transform: translate(1px, 1px);
 }
 
 .favicon,
